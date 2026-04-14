@@ -4,20 +4,22 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Theos
-        uses: theo-s/setup-theos@master
+        uses: theos/setup-theos@v1.1
+        with:
+          theos-src: https://github.com/theos/theos.git
 
       - name: Build Tweak
         run: |
           make package FINALPACKAGE=1
           
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Ahmed-Bypass
           path: packages/*.deb
