@@ -1,0 +1,9 @@
+Package: com.ahmed.bypass
+Name: AhmedBypass
+Depends: mobilesubstrate
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Ultra Shield for PUBG 4.3.0
+Maintainer: Ahmed
+Author: Ahmed
+Section: Tweaks
