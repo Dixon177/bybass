@@ -1,9 +1,9 @@
-Package: com.ahmed.bypass
-Name: AhmedBypass
+Package: com.ahmed.pro
+Name: Ahmed VIP
 Depends: mobilesubstrate
-Version: 1.0.0
+Version: 4.3.0
 Architecture: iphoneos-arm
-Description: Ultra Shield for PUBG 4.3.0
+Description: Private Premium Mod by Ahmed
 Maintainer: Ahmed
 Author: Ahmed
 Section: Tweaks
