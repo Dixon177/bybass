@@ -1,57 +1,91 @@
 #import <Foundation/Foundation.h>
 #import <mach-o/dyld.h>
-#import <dlfcn.h>
 #import <UIKit/UIKit.h>
+#import <sys/sysctl.h>
 
-// --- 1. حماية النظام ومنع اكتشاف المصحح (Anti-Debug) ---
-void apply_security() {
-    void *handle = dlopen(0, RTLD_GLOBAL | RTLD_NOW);
-    typedef int (*ptrace_ptr_t)(int _request, pid_t _pid, caddr_t _addr, int _data);
-    ptrace_ptr_t ptrace_ptr = (ptrace_ptr_t)dlsym(handle, "ptrace");
-    if (ptrace_ptr) ptrace_ptr(31, 0, 0, 0); // PT_DENY_ATTACH
-}
+// --- [ الوصول لقاعدة بيانات اللعبة ] ---
+uintptr_t get_base() { return (uintptr_t)_dyld_get_image_header(0); }
 
-// --- 2. منع اللعبة من اكتشاف ملف الـ dylib (Stealth) ---
-uint32_t (*orig_dyld_image_count)();
-uint32_t hook_dyld_image_count() {
-    return orig_dyld_image_count() - 1; 
-}
-
-// --- 3. منع إرسال بيانات الغش والبلاغات (Anti-Report) ---
-%hook TDataCollector
-- (void)collectData:(int)dataType { return; }
-%end
-
-%hook TLogManager
-- (void)uploadLogsToServer:(id)logs { return; }
-%end
-
-%hook ACEDataCollector
-- (void)sendReport:(id)arg1 type:(int)arg2 { return; }
-%end
-
-%hook TSDKReport
-+ (void)saveReportData:(id)data { return; }
-%end
-
-// --- 4. تعطيل تصوير الشاشة عند البلاغ ---
-%hook UIScreen
-- (UIView *)snapshotViewAfterScreenUpdates:(BOOL)afterUpdates { return nil; }
-%end
-
-// --- 5. تزييف معلومات الجهاز لتجنب باند الهاردوير ---
-%hook UIDevice
-- (NSString *)name { return @"iPhone"; }
-- (NSString *)systemVersion { return @"16.0"; }
-- (NSString *)model { return @"iPhone15,2"; }
-%end
-
-// --- تشغيل الحماية ---
-%ctor {
-    apply_security();
+// --- [ 1. قسم الحماية - BYPASS ] ---
+// هذي الحماية اللي سحبناها من ملف AWSS3 لمنع الباند
+void apply_security_bypass() {
+    uintptr_t base = get_base();
     
-    // تأخير الحقن لضمان استقرار اللعبة
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        NSLog(@"[Ahmed_Bypass_V2] Ultra Shield Active & Stealth Engaged.");
+    // تعطيل فحص الحماية (Security Heartbeat) لنسخة 4.3.0
+    *(uint32_t *)(base + 0x6DA2F10) = 0xD503201F; 
+    
+    // إخفاء التعديلات عن نظام تصوير الشاشة (Anti-Cheat Screenshot)
+    *(uint32_t *)(base + 0x6E1B4A0) = 0xD503201F;
+    
+    // حماية إخفاء ملف الـ dylib المحقون
+    *(uint32_t *)(base + 0x6B1A2C0) = 0xD503201F;
+}
+
+// --- [ 2. قسم الخصائص - FEATURES ] ---
+
+// أ- الثبات (Recoil)
+void activate_recoil() {
+    uintptr_t base = get_base();
+    *(uint32_t *)(base + 0x72A3BC8) = 0xD503201F;
+    *(uint32_t *)(base + 0x72A3BCC) = 0xD503201F;
+}
+
+// ب- التلوين الذكي (Smart Chams)
+void activate_smart_chams() {
+    uintptr_t base = get_base();
+    *(uint32_t *)(base + 0x6B21F40) = 0xD503201F;
+}
+
+// ج- الإيمبوت الذكي (Neck Aimbot)
+void activate_smart_aimbot() {
+    uintptr_t base = get_base();
+    
+    // تحديد الهدف: الرقبة (Bone ID: 4)
+    uintptr_t bone_addr = base + 0x5E2A1B0; 
+    *(int *)(bone_addr) = 4; 
+
+    // المسافة: 150 متر فقط
+    uintptr_t dist_addr = base + 0x5E2A1BC;
+    *(float *)(dist_addr) = 150.0f;
+
+    // تجاهل النوك
+    uintptr_t ignore_knock_addr = base + 0x5E2A1C0;
+    *(bool *)(ignore_knock_addr) = true;
+}
+
+// د- فريمات 90 FPS
+void activate_fps() {
+    uintptr_t base = get_base();
+    *(uint32_t *)(base + 0x6A1B2C4) = 0xD503201F;
+}
+
+// --- [ رسالة التفعيل ] ---
+void show_welcome_msg() {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIWindow *window = [UIApplication sharedApplication].keyWindow;
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Ahmed VIP" 
+            message:@"تم تفعيل الحماية والخصائص بنجاح\n(Security Bypass + Smart Aimbot)" 
+            preferredStyle:UIAlertControllerStyleAlert];
+        [alert addAction:[UIAlertAction actionWithTitle:@"تم" style:UIAlertActionStyleDefault handler:nil]];
+        [window.rootViewController presentViewController:alert animated:YES completion:nil];
+    });
+}
+
+// --- [ نقطة الانطلاق والتشغيل ] ---
+%ctor {
+    // تشغيل الحماية فوراً وبدون تأخير
+    apply_security_bypass();
+    
+    // تفعيل الخصائص بعد 30 ثانية لضمان الأمان
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(30 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        
+        activate_recoil();
+        activate_smart_chams();
+        activate_smart_aimbot();
+        activate_fps();
+        
+        show_welcome_msg();
+        
+        NSLog(@"[Ahmed_Project] Fully Protected & Loaded.");
     });
 }
