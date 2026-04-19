@@ -2,35 +2,51 @@
 #import <mach-o/dyld.h>
 #import <UIKit/UIKit.h>
 
-// الحصول على عنوان قاعدة اللعبة
-uintptr_t get_base() { return (uintptr_t)_dyld_get_image_header(0); }
+// --- [ وظيفة جلب عنوان اللعبة الأساسي ] ---
+uintptr_t get_base() { 
+    return (uintptr_t)_dyld_get_image_header(0); 
+}
 
-// --- [ 1. الحماية BYPASS ] ---
+// --- [ 1. قسم الحماية - SECURITY BYPASS ] ---
 void apply_bypass() {
     uintptr_t base = get_base();
-    *(uint32_t *)(base + 0x6DA2F10) = 0xD503201F; // حماية السيرفر
-    *(uint32_t *)(base + 0x6E1B4A0) = 0xD503201F; // منع التصوير
+    // تعطيل فحص الحماية ومنع باند 10 دقائق (من ملف AWSS3)
+    *(uint32_t *)(base + 0x6DA2F10) = 0xD503201F; 
+    // حماية ضد تصوير الشاشة لإخفاء الهاك
+    *(uint32_t *)(base + 0x6E1B4A0) = 0xD503201F;
+    // منع اكتشاف ملف الـ dylib
+    *(uint32_t *)(base + 0x6B1A2C0) = 0xD503201F;
 }
 
-// --- [ 2. الإيمبوت الذكي (رقبة) ] ---
-void activate_aim() {
+// --- [ 2. قسم الإيمبوت الذكي - SMART AIMBOT ] ---
+void activate_aimbot() {
     uintptr_t base = get_base();
-    *(int *)(base + 0x5E2A1B0) = 4;        // هدف الرقبة
-    *(float *)(base + 0x5E2A1BC) = 150.0f; // مسافة 150م
-    *(bool *)(base + 0x5E2A1C0) = true;   // تجاهل النوك
+    // تحديد الهدف: الرقبة (Bone ID: 4) لتقليل نسبة الهيدشوت وتجنب الباند
+    uintptr_t bone_addr = base + 0x5E2A1B0; 
+    *(int *)(bone_addr) = 4; 
+    // تحديد المسافة: 150 متر فقط
+    *(float *)(base + 0x5E2A1BC) = 150.0f;
+    // تجاهل اللاعبين النووك
+    *(bool *)(base + 0x5E2A1C0) = true;
 }
 
-// --- [ 3. الثبات والتلوين ] ---
+// --- [ 3. قسم الخصائص - FEATURES ] ---
 void activate_mods() {
     uintptr_t base = get_base();
-    *(uint32_t *)(base + 0x72A3BC8) = 0xD503201F; // ثبات
-    *(uint32_t *)(base + 0x6B21F40) = 0xD503201F; // تلوين
+    // ثبات السلاح 100%
+    *(uint32_t *)(base + 0x72A3BC8) = 0xD503201F;
+    *(uint32_t *)(base + 0x72A3BCC) = 0xD503201F;
+    // تلوين ذكي (Chams)
+    *(uint32_t *)(base + 0x6B21F40) = 0xD503201F;
+    // فتح الفريمات 90 FPS
+    *(uint32_t *)(base + 0x6A1B2C4) = 0xD503201F;
 }
 
-// دالة إظهار الرسالة بطريقة متوافقة مع iOS 13+
-void show_msg() {
+// --- [ 4. رسالة التفعيل - إصلاح مشكلة iOS 13+ ] ---
+void show_welcome_msg() {
     dispatch_async(dispatch_get_main_queue(), ^{
         UIWindow *window = nil;
+        // البحث عن النافذة النشطة بطريقة متوافقة مع الأنظمة الجديدة
         if (@available(iOS 13.0, *)) {
             for (UIWindowScene* windowScene in [UIApplication sharedApplication].connectedScenes) {
                 if (windowScene.activationState == UISceneActivationStateForegroundActive) {
@@ -41,18 +57,28 @@ void show_msg() {
         } else {
             window = [UIApplication sharedApplication].keyWindow;
         }
-        
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Ahmed VIP" message:@"Loaded Successfully" preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-        [window.rootViewController presentViewController:alert animated:YES completion:nil];
+
+        if (window) {
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Ahmed VIP" 
+                message:@"تم تفعيل الحماية والإيمبوت (رقبة) بنجاح\nVersion 4.3.0" 
+                preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:@"استمرار" style:UIAlertActionStyleDefault handler:nil]];
+            [window.rootViewController presentViewController:alert animated:YES completion:nil];
+        }
     });
 }
 
+// --- [ نقطة الانطلاق والتشغيل ] ---
 %ctor {
+    // تفعيل الحماية فوراً عند التشغيل
     apply_bypass();
+    
+    // تفعيل الخصائص بعد 30 ثانية لضمان الأمان وتخطي فحص اللعبة
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(30 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        activate_aim();
+        activate_aimbot();
         activate_mods();
-        show_msg();
+        show_welcome_msg();
+        
+        NSLog(@"[Ahmed_VIP] Project AhmedBypass Loaded Successfully.");
     });
 }
